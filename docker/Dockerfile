@@ -75,7 +75,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm i
 
 COPY . /app
-RUN chmod +x docker/entrypoints/*.sh && sed -i 's/\r$//' docker/entrypoints/*.sh
+RUN chmod +x docker/entrypoints/*.sh && sed -i 's/\r$//' docker/entrypoints/*.sh && sed -i 's/\r$//' docker/entrypoints/helpers/*.rb && sed -i 's/\r$//' bin/*
 
 # creating a log directory so that image wont fail when RAILS_LOG_TO_STDOUT is false
 # https://github.com/chatwoot/chatwoot/issues/701
