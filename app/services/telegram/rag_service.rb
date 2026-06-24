@@ -2,8 +2,6 @@
 
 module Telegram
   class RagService
-    include Vibrato
-
     def initialize(account_id: nil)
       @account_id = account_id
       @account = Account.find_by(id: account_id) if account_id
@@ -34,7 +32,7 @@ module Telegram
 
     private
 
-    attr_reader :account_id, @account
+    attr_reader :account_id, :account
 
     def try_vector_search(query, limit)
       return nil unless vector_search_available?
