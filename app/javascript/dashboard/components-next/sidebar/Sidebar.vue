@@ -645,12 +645,6 @@ const menuItems = computed(() => {
           icon: 'i-lucide-briefcase',
           to: accountScopedRoute('general_settings_index'),
         },
-        // {
-        //   name: 'Settings Captain',
-        //   label: t('SIDEBAR.CAPTAIN_AI'),
-        //   icon: 'i-woot-captain',
-        //   to: accountScopedRoute('captain_settings_index'),
-        // },
         {
           name: 'Settings Agents',
           label: t('SIDEBAR.AGENTS'),
@@ -729,6 +723,12 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.AGENT_BOTS'),
           icon: 'i-lucide-bot',
           to: accountScopedRoute('agent_bots'),
+        },
+        {
+          name: 'Settings Rag Bots',
+          label: 'RAG Bots',
+          icon: 'i-lucide-bot',
+          to: accountScopedRoute('rag_bots'),
         },
         {
           name: 'Settings Macros',

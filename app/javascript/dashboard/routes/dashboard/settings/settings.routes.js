@@ -8,6 +8,7 @@ import account from './account/account.routes';
 import agent from './agents/agent.routes';
 import assignmentPolicy from './assignmentPolicy/assignmentPolicy.routes';
 import agentBot from './agentBots/agentBot.routes';
+import ragBot from './ragBots/ragBot.routes';
 import attributes from './attributes/attributes.routes';
 import automation from './automation/automation.routes';
 import auditlogs from './auditlogs/audit.routes';
@@ -26,6 +27,8 @@ import profile from './profile/profile.routes';
 import security from './security/security.routes';
 import conversationWorkflow from './conversationWorkflow/conversationWorkflow.routes';
 import captain from './captain/captain.routes';
+
+import aiSettings from './aiSettings/aiSettings.routes';
 
 export default {
   routes: [
@@ -50,6 +53,7 @@ export default {
     ...agent.routes,
     ...assignmentPolicy.routes,
     ...agentBot.routes,
+    ...ragBot.routes,
     ...attributes.routes,
     ...automation.routes,
     ...auditlogs.routes,
@@ -67,5 +71,7 @@ export default {
     ...security.routes,
     ...conversationWorkflow.routes,
     ...captain.routes,
+
+    ...aiSettings.routes,
   ],
 };

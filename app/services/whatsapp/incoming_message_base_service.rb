@@ -102,6 +102,23 @@ class Whatsapp::IncomingMessageBaseService
     attach_files
     attach_location if message_type == 'location'
     @message.save!
+
+    trigger_rag_response if should_trigger_rag?
+  end
+
+  def should_trigger_rag?
+    return false unless outgoing_echo == false
+    return false unless inbox.account.feature_enabled?('rag')
+
+    message_content(messages_data.first).present?
+  end
+
+  def trigger_rag_response
+    content = message_content(messages_data.first)
+    return unless content.present?
+
+    Rails.logger.info("Triggering RAG response for WhatsApp message #{@message.id}")
+    Rag::ResponseJob.perform_later('whatsapp', @message.id, content)
   end
 
   def set_contact

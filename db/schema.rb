@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_05_25_093000) do
+ActiveRecord::Schema[7.1].define(version: 2026_06_17_072045) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -771,6 +771,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_25_093000) do
     t.index ["review_notes_updated_by_id"], name: "index_csat_survey_responses_on_review_notes_updated_by_id"
   end
 
+  create_table "custom_ai_integrations", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.string "endpoint_url"
+    t.string "api_key"
+    t.string "model_name"
+    t.text "system_prompt"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_custom_ai_integrations_on_account_id"
+  end
+
   create_table "custom_attribute_definitions", force: :cascade do |t|
     t.string "attribute_display_name"
     t.string "attribute_key"
@@ -1128,6 +1139,39 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_25_093000) do
     t.index ["user_id"], name: "index_portals_members_on_user_id"
   end
 
+  create_table "rag_documents", force: :cascade do |t|
+    t.integer "account_id"
+    t.integer "uploaded_by_id"
+    t.string "name", null: false
+    t.string "file_type", null: false
+    t.integer "status", default: 0, null: false
+    t.integer "scope", default: 0, null: false
+    t.string "last_error"
+    t.datetime "processed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_rag_documents_on_account_id"
+    t.index ["scope"], name: "index_rag_documents_on_scope"
+    t.index ["status"], name: "index_rag_documents_on_status"
+  end
+
+  create_table "rag_knowledge_entries", force: :cascade do |t|
+    t.integer "account_id"
+    t.integer "uploaded_by"
+    t.string "question", null: false
+    t.text "answer", null: false
+    t.integer "scope", default: 0, null: false
+    t.vector "embedding", limit: 1536
+    t.jsonb "metadata", default: {}
+    t.boolean "edited", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_rag_knowledge_entries_on_account_id"
+    t.index ["embedding"], name: "index_rag_knowledge_entries_on_embedding", using: :ivfflat
+    t.index ["scope"], name: "index_rag_knowledge_entries_on_scope"
+    t.index ["updated_at"], name: "index_rag_knowledge_entries_on_updated_at"
+  end
+
   create_table "related_categories", force: :cascade do |t|
     t.bigint "category_id"
     t.bigint "related_category_id"
@@ -1250,6 +1294,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_25_093000) do
     t.datetime "updated_at", null: false
     t.index ["account_id"], name: "index_teams_on_account_id"
     t.index ["name", "account_id"], name: "index_teams_on_name_and_account_id", unique: true
+  end
+
+  create_table "telegram_rag_documents", force: :cascade do |t|
+    t.integer "account_id", null: false
+    t.string "name", null: false
+    t.string "file_type", null: false
+    t.text "content"
+    t.jsonb "metadata", default: {}
+    t.integer "status", default: 0, null: false
+    t.string "last_error"
+    t.datetime "processed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_telegram_rag_documents_on_account_id"
+    t.index ["status"], name: "index_telegram_rag_documents_on_status"
   end
 
   create_table "users", id: :serial, force: :cascade do |t|

@@ -64,7 +64,7 @@ const v$ = useVuelidate(
       ),
       url: helpers.withMessage(
         () => t('AGENT_BOTS.FORM.ERRORS.VALID_URL'),
-        url
+        value => !value || /^https?:\/\/.+/.test(value)
       ),
     },
   },

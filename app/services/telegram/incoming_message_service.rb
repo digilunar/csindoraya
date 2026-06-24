@@ -33,6 +33,31 @@ class Telegram::IncomingMessageService
 
     process_message_attachments if message_params?
     @message.save!
+
+    trigger_rag_response if should_trigger_rag?
+  end
+
+  def should_trigger_rag?
+    return false unless inbox.channel.is_a?(Channel::Telegram)
+    return false unless inbox.channel.bot_name.present?
+    return false unless incoming_message?
+
+    # Only trigger for text messages
+    telegram_params_message_content.present?
+  end
+
+  def trigger_rag?
+    @trigger_rag ||= inbox.account.feature_enabled?('rag') || inbox.account.feature_enabled?('telegram_rag')
+  end
+
+  def trigger_rag_response
+    return unless trigger_rag?
+
+    ::ActionCableBroadcastJob.perform_later(@message.inbox.api_token, 'message.created', @message.push_event_data)
+  end
+
+  def incoming_message?
+    message_type == :incoming
   end
 
   private

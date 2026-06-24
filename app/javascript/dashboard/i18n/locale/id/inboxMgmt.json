@@ -637,7 +637,8 @@
       "BOT_CONFIGURATION": "Konfigurasi Bot",
       "ACCOUNT_HEALTH": "Account Health",
       "CSAT": "CSAT",
-      "VOICE": "Voice"
+      "VOICE": "Voice",
+      "RAG_DOCUMENTS": "RAG Knowledge Base"
     },
     "VOICE_CONFIGURATION": {
       "ENABLE_VOICE": {

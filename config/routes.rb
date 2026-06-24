@@ -47,6 +47,7 @@ Rails.application.routes.draw do
         member do
           post :update_active_at
           get :cache_keys
+          post :test_ai
         end
 
         scope module: :accounts do
@@ -88,12 +89,24 @@ Rails.application.routes.draw do
               post :follow_up
             end
           end
+          namespace :rag do
+            resources :documents, only: [:index, :show, :create, :destroy] do
+              collection do
+                post :bulk_upload
+              end
+            end
+          end
           resource :saml_settings, only: [:show, :create, :update, :destroy]
           resources :agent_bots, only: [:index, :create, :show, :update, :destroy] do
             delete :avatar, on: :member
             post :reset_access_token, on: :member
             post :reset_secret, on: :member
           end
+          resources :rag_bots, only: [:index, :create, :show, :update, :destroy]
+          resource :custom_ai_integration, only: [:show, :create, :update] do
+            post :test
+          end
+          post 'custom_ai_webhook', to: 'custom_ai_webhooks#create'
           resources :contact_inboxes, only: [] do
             collection do
               post :filter
@@ -412,6 +425,7 @@ Rails.application.routes.draw do
       namespace :integrations do
         resources :webhooks, only: [:create]
       end
+      post 'rag_bot_webhooks/:webhook_token', to: 'rag_bot_webhooks#create'
 
       # Frontend API endpoint to trigger SAML authentication flow
       post 'auth/saml_login', to: 'auth#saml_login'

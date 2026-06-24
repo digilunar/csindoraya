@@ -15,6 +15,10 @@ class AccountPolicy < ApplicationPolicy
     @account_user.administrator?
   end
 
+  def test_ai?
+    @account_user.administrator?
+  end
+
   def update_active_at?
     true
   end

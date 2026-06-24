@@ -242,3 +242,6 @@
   display_name: Advanced Assignment
   enabled: false
   premium: true
+- name: rag
+  display_name: RAG Documents
+  enabled: true

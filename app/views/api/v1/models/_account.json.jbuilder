@@ -18,6 +18,10 @@ if resource.custom_attributes.present?
     if resource.custom_attributes['marked_for_deletion_reason'].present?
       json.marked_for_deletion_reason resource.custom_attributes['marked_for_deletion_reason']
     end
+    json.ai_enabled resource.custom_attributes['ai_enabled'] if resource.custom_attributes['ai_enabled'].present?
+    json.ai_endpoint resource.custom_attributes['ai_endpoint'] if resource.custom_attributes['ai_endpoint'].present?
+    json.ai_api_key resource.custom_attributes['ai_api_key'] if resource.custom_attributes['ai_api_key'].present?
+    json.ai_model resource.custom_attributes['ai_model'] if resource.custom_attributes['ai_model'].present?
   end
 end
 json.domain @account.domain

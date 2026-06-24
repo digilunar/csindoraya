@@ -54,6 +54,49 @@ class Api::V1::AccountsController < Api::BaseController
     render json: { cache_keys: cache_keys_for_account }, status: :ok
   end
 
+  def test_ai
+    require 'net/http'
+    require 'uri'
+    require 'json'
+
+    ai_endpoint = params[:ai_endpoint].presence || @account.custom_attributes['ai_endpoint']
+    ai_api_key = params[:ai_api_key].presence || @account.custom_attributes['ai_api_key']
+    ai_model = params[:ai_model].presence || @account.custom_attributes['ai_model'] || 'gpt-3.5-turbo'
+
+    if ai_endpoint.blank?
+      render json: { success: false, error: 'Endpoint URL is missing' }, status: :bad_request
+      return
+    end
+
+    ai_endpoint = ai_endpoint.chomp('/')
+    ai_endpoint += '/chat/completions' unless ai_endpoint.end_with?('/chat/completions')
+
+    uri = URI.parse(ai_endpoint)
+    request = Net::HTTP::Post.new(uri.request_uri)
+    request['Content-Type'] = 'application/json'
+    request['Authorization'] = "Bearer #{ai_api_key}" if ai_api_key.present?
+
+    request.body = JSON.dump({
+      "model" => ai_model,
+      "messages" => [
+        { "role" => "user", "content" => "Ping" }
+      ],
+      "stream" => false
+    })
+
+    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https', read_timeout: 15, open_timeout: 15) do |http|
+      http.request(request)
+    end
+
+    if response.is_a?(Net::HTTPSuccess)
+      render json: { success: true, message: 'Connection successful', response: JSON.parse(response.body) }
+    else
+      render json: { success: false, error: response.body }, status: :bad_request
+    end
+  rescue StandardError => e
+    render json: { success: false, error: e.message }, status: :internal_server_error
+  end
+
   def update
     @account.assign_attributes(account_params.slice(:name, :locale, :domain, :support_email))
     @account.custom_attributes.merge!(custom_attributes_params)
@@ -111,7 +154,7 @@ class Api::V1::AccountsController < Api::BaseController
   end
 
   def custom_attributes_params
-    params.permit(:industry, :company_size, :timezone, :referral_source, :user_role, :website)
+    params.permit(:industry, :company_size, :timezone, :referral_source, :user_role, :website, :rag_system_prompt, :ai_endpoint, :ai_api_key, :ai_model, :ai_enabled)
   end
 
   def settings_params

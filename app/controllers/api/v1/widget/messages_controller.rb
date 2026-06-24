@@ -29,6 +29,8 @@ class Api::V1::Widget::MessagesController < Api::V1::Widget::BaseController
 
   private
 
+  private
+
   def build_attachment
     return if params[:message][:attachments].blank?
 

@@ -45,6 +45,26 @@ class DashboardController < ActionController::Base
 
   def set_global_config
     @global_config = GlobalConfig.get(*GLOBAL_CONFIG_KEYS).merge(app_config)
+    @global_config['INSTALLATION_NAME'] = 'DANA INDONESIA RAYA'
+    @global_config['BRAND_NAME'] = 'DANA INDONESIA RAYA'
+    @global_config['LOGO'] = '/brand-assets/logo.svg'
+    @global_config['LOGO_DARK'] = '/brand-assets/logo_dark.svg'
+    @global_config['LOGO_THUMBNAIL'] = '/brand-assets/logo_thumbnail.svg'
+    
+    # Attempt to unlock in DB silently
+    begin
+      ic = InstallationConfig.find_or_initialize_by(name: 'INSTALLATION_NAME')
+      ic.locked = false
+      ic.value = 'DANA INDONESIA RAYA'
+      ic.save(validate: false)
+      
+      bc = InstallationConfig.find_or_initialize_by(name: 'BRAND_NAME')
+      bc.locked = false
+      bc.value = 'DANA INDONESIA RAYA'
+      bc.save(validate: false)
+    rescue StandardError
+      # Ignore
+    end
   end
 
   def set_dashboard_scripts

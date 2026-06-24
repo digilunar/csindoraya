@@ -75,6 +75,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm i
 
 COPY . /app
+RUN chmod +x docker/entrypoints/*.sh && sed -i 's/\r$//' docker/entrypoints/*.sh
 
 # creating a log directory so that image wont fail when RAILS_LOG_TO_STDOUT is false
 # https://github.com/chatwoot/chatwoot/issues/701
@@ -86,8 +87,8 @@ RUN if [ "$RAILS_ENV" = "production" ]; then \
   && rm -rf spec node_modules tmp/cache; \
   fi
 
-# Generate .git_sha file with current commit hash
-RUN git rev-parse HEAD > /app/.git_sha
+# Generate .git_sha file with current commit hash (bypassed because .git is excluded)
+RUN echo "custom-build" > /app/.git_sha
 
 # Remove unnecessary files
 RUN rm -rf /gems/ruby/3.4.0/cache/*.gem \

@@ -104,3 +104,13 @@ CLAUDE.local.md
 .pnpm-store/*
 local/
 Procfile.worktree
+
+# Custom test scripts
+check_*.rb
+test_*.rb
+run_*.sh
+dump_*.rb
+fix_*.rb
+get_*.rb
+list_*.sh
+inspect_*.rb

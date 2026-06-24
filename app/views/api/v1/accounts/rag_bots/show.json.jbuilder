@@ -1,0 +1,9 @@
+json.id @rag_bot.id
+json.name @rag_bot.name
+json.rag_knowledge @rag_bot.rag_knowledge
+json.ai_endpoint_url @rag_bot.ai_endpoint_url
+json.use_general_ai_setting @rag_bot.use_general_ai_setting
+json.webhook_token @rag_bot.webhook_token
+json.webhook_url @rag_bot.webhook_url
+json.created_at @rag_bot.created_at
+json.updated_at @rag_bot.updated_at
