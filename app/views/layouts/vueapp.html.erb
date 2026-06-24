@@ -26,7 +26,7 @@
       <link class="favicon" rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
       <link rel="manifest" href="/manifest.json">
     <% end %>
-    <link rel="icon" type="image/png" sizes="512x512" href="/brand-assets/logo_thumbnail.svg">
+    <link rel="icon" type="image/png" sizes="512x512" href="/brand-assets/indoraya.png">
     <%= csrf_meta_tags %>
     <script>
       window.chatwootConfig = {
@@ -56,7 +56,7 @@
         inboxEventsEnabled: '<%= ENV['ENABLE_INBOX_EVENTS'].present? %>',
         selectedLocale: '<%= I18n.locale %>'
       }
-      window.globalConfig = <%= raw @global_config.merge('INSTALLATION_NAME' => 'DANA INDONESIA RAYA', 'BRAND_NAME' => 'DANA INDONESIA RAYA', 'LOGO' => '/brand-assets/logo.svg', 'LOGO_DARK' => '/brand-assets/logo_dark.svg', 'LOGO_THUMBNAIL' => '/brand-assets/logo_thumbnail.svg').to_json %>
+      window.globalConfig = <%= raw @global_config.merge('INSTALLATION_NAME' => 'DANA INDONESIA RAYA', 'BRAND_NAME' => 'DANA INDONESIA RAYA', 'LOGO' => '/brand-assets/indoraya.png', 'LOGO_DARK' => '/brand-assets/indoraya.png', 'LOGO_THUMBNAIL' => '/brand-assets/indoraya.png').to_json %>
       window.browserConfig = {
         browser_name: '<%= browser.name %>',
       }
