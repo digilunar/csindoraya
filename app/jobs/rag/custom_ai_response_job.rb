@@ -65,7 +65,12 @@ class Rag::CustomAiResponseJob < ApplicationJob
     headers = { 'Content-Type' => 'application/json' }
     headers['Authorization'] = "Bearer #{integration.api_key}" if integration.api_key.present?
 
-    conn = Faraday.new(url: integration.endpoint_url) do |f|
+    endpoint = integration.endpoint_url
+    if endpoint.match?(/\/v1\/?$/)
+      endpoint = endpoint.chomp('/') + '/chat/completions'
+    end
+
+    conn = Faraday.new(url: endpoint) do |f|
       f.request :json
       f.response :json
       f.adapter Faraday.default_adapter

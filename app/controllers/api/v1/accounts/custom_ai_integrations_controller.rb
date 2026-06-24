@@ -36,6 +36,11 @@ class Api::V1::Accounts::CustomAiIntegrationsController < Api::V1::Accounts::Bas
     require 'net/http'
     require 'uri'
 
+    # Smartly append /chat/completions if the user provided a base URL
+    if endpoint.match?(/\/v1\/?$/)
+      endpoint = endpoint.chomp('/') + '/chat/completions'
+    end
+
     uri = URI.parse(endpoint)
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = (uri.scheme == 'https')
