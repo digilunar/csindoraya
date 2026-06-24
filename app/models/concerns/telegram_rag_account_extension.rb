@@ -8,6 +8,6 @@ module TelegramRagAccountExtension
   end
 
   def telegram_rag_enabled?
-    feature_enabled?('telegram_rag')
+    true
   end
 end
