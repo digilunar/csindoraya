@@ -471,6 +471,10 @@
             "TITLE": "WhatsApp Call",
             "DESCRIPTION": "Take voice calls on your WhatsApp number"
           },
+          "LUNARSENDER": {
+            "TITLE": "LunarSender",
+            "DESCRIPTION": "Support your customers via LunarSender API"
+          },
           "EMAIL": {
             "TITLE": "Email",
             "DESCRIPTION": "Connect with Gmail, Outlook, or other providers"

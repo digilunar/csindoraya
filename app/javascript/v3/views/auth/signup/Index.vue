@@ -42,13 +42,15 @@ const resizeContainers = () => {
             <img
               :src="globalConfig.logo"
               :alt="globalConfig.installationName"
-              class="block w-auto h-7 dark:hidden"
+              class="block w-auto dark:hidden"
+              style="height: 200px;"
             />
             <img
               v-if="globalConfig.logoDark"
               :src="globalConfig.logoDark"
               :alt="globalConfig.installationName"
-              class="hidden w-auto h-7 dark:block"
+              class="hidden w-auto dark:block"
+              style="height: 200px;"
             />
             <h2 class="mt-6 text-2xl font-semibold text-n-slate-12">
               {{

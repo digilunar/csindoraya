@@ -80,6 +80,8 @@ class Webhooks::WhatsappEventsJob < MutexApplicationJob
     case channel.provider
     when 'whatsapp_cloud'
       Whatsapp::IncomingMessageWhatsappCloudService.new(inbox: channel.inbox, params: params).perform
+    when 'lunarsender'
+      Whatsapp::IncomingMessageLunarsenderService.new(inbox: channel.inbox, params: params).perform
     else
       Whatsapp::IncomingMessageService.new(inbox: channel.inbox, params: params).perform
     end

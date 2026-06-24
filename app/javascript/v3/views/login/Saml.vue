@@ -75,13 +75,15 @@ onMounted(async () => {
       <img
         :src="globalConfig.logo"
         :alt="globalConfig.installationName"
-        class="block w-auto h-8 mx-auto dark:hidden"
+        class="block w-auto mx-auto dark:hidden"
+        style="height: 200px;"
       />
       <img
         v-if="globalConfig.logoDark"
         :src="globalConfig.logoDark"
         :alt="globalConfig.installationName"
-        class="hidden w-auto h-8 mx-auto dark:block"
+        class="hidden w-auto mx-auto dark:block"
+        style="height: 200px;"
       />
       <h2 class="mt-6 text-3xl font-medium text-center text-n-slate-12">
         {{ t('LOGIN.SAML.TITLE') }}

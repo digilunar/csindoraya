@@ -102,6 +102,13 @@ const channelList = computed(() => {
     icon: 'i-woot-whatsapp',
   });
 
+  channels.push({
+    key: 'lunarsender',
+    title: t('INBOX_MGMT.ADD.AUTH.CHANNEL.LUNARSENDER.TITLE'),
+    description: t('INBOX_MGMT.ADD.AUTH.CHANNEL.LUNARSENDER.DESCRIPTION'),
+    icon: 'i-woot-whatsapp',
+  });
+
   return channels;
 });
 
