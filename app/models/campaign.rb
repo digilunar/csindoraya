@@ -70,7 +70,11 @@ class Campaign < ApplicationRecord
     when 'Sms'
       Sms::OneoffSmsCampaignService.new(campaign: self).perform
     when 'Whatsapp'
-      Whatsapp::OneoffCampaignService.new(campaign: self).perform if account.feature_enabled?(:whatsapp_campaign)
+      if inbox.channel.provider == 'lunarsender'
+        Whatsapp::LunarsenderOneoffCampaignService.new(campaign: self).perform if account.feature_enabled?(:whatsapp_campaign)
+      else
+        Whatsapp::OneoffCampaignService.new(campaign: self).perform if account.feature_enabled?(:whatsapp_campaign)
+      end
     end
   end
 

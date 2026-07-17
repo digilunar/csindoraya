@@ -585,6 +585,11 @@ const menuItems = computed(() => {
           label: t('SIDEBAR.WHATSAPP'),
           to: accountScopedRoute('campaigns_whatsapp_index'),
         },
+        {
+          name: 'Lunarsender',
+          label: 'Lunarsender',
+          to: accountScopedRoute('campaigns_lunarsender_index'),
+        },
       ],
     },
     {

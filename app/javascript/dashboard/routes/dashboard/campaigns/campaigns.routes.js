@@ -60,6 +60,15 @@ const campaignsRoutes = {
           },
           component: WhatsAppCampaignsPage,
         },
+        {
+          path: 'lunarsender',
+          name: 'campaigns_lunarsender_index',
+          meta: {
+            ...meta,
+            featureFlag: FEATURE_FLAGS.WHATSAPP_CAMPAIGNS,
+          },
+          component: () => import('./pages/LunarsenderCampaignsPage.vue'),
+        },
       ],
     },
   ],
