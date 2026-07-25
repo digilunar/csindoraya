@@ -1,0 +1,37 @@
+{
+  "RAG_DOCUMENTS": {
+    "TITLE": "RAG Knowledge Base",
+    "DESCRIPTION": "Kelola dokumen referensi basis pengetahuan global untuk semua bot di akun Anda. (Untuk memisahkan konteks per bot, masukkan pengetahuan spesifik ke dalam isian 'RAG Knowledge / System Prompt' saat Edit Bot).",
+    "UPLOAD_BUTTON": "Unggah Dokumen",
+    "SCOPE": "Cakupan (Scope)",
+    "SCOPE_ACCOUNT": "Hanya Akun Ini",
+    "SCOPE_GLOBAL": "Global (Semua Akun)",
+    "FILES": "Pilih Dokumen",
+    "DRAG_DROP": "Klik atau seret file ke sini",
+    "SUPPORTED_FORMATS": "Mendukung PDF, TXT, CSV, Excel, dan Gambar (Max 10MB)",
+    "CANCEL": "Batal",
+    "UPLOAD": "Unggah",
+    "UPLOAD_MODAL": {
+      "TITLE": "Unggah Dokumen Pengetahuan"
+    },
+    "EMPTY_STATE": {
+      "TITLE": "Belum ada dokumen",
+      "DESCRIPTION": "Unggah dokumen atau file pertama Anda agar bot bisa mempelajarinya."
+    },
+    "UPLOAD_FIRST": "Unggah File Pertama",
+    "STATUS": {
+      "PENDING": "Menunggu",
+      "PROCESSING": "Memproses",
+      "COMPLETED": "Selesai",
+      "FAILED": "Gagal"
+    },
+    "DELETE_CONFIRM": "Apakah Anda yakin ingin menghapus dokumen ini?",
+    "DELETE_SUCCESS": "Dokumen berhasil dihapus",
+    "UPLOAD_SUCCESS": "Dokumen berhasil diunggah",
+    "ERRORS": {
+      "FETCH": "Gagal mengambil daftar dokumen",
+      "UPLOAD": "Gagal mengunggah dokumen",
+      "DELETE": "Gagal menghapus dokumen"
+    }
+  }
+}

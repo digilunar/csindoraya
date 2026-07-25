@@ -1,0 +1,1 @@
+RagBot.all.each { |r| puts "RAG: #{r.id} - #{r.name} - #{r.webhook_token}" }; AgentBot.all.each { |a| puts "AGENT: #{a.id} - #{a.name} - #{a.outgoing_url}" }

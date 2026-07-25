@@ -1,0 +1,1 @@
+u=User.first; u.email='cs@indoraya.com'; u.password='Indo@123'; u.password_confirmation='Indo@123'; u.save!; puts u.email
