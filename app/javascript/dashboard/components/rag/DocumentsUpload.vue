@@ -31,8 +31,9 @@
               </span>
               <span v-if="doc.file_type">{{ doc.file_type.toUpperCase() }}</span>
             </div>
-            <div v-if="doc.status === 'failed' && doc.last_error" class="document-error">
-              <p class="error-text">Alasan Gagal: {{ doc.last_error }}</p>
+            <div v-if="doc.status === 'failed'" class="document-error">
+              <p class="error-text">File tidak bisa di baca</p>
+              <p class="error-detail" v-if="doc.last_error">Alasan: {{ doc.last_error }}</p>
             </div>
           </div>
         </div>
@@ -115,12 +116,12 @@
 
           <!-- Progress Bar -->
           <div v-if="isUploading" class="upload-progress-container mt-4">
-            <div class="flex justify-between text-sm mb-1 text-slate-600">
-              <span>Mengunggah...</span>
+            <div class="progress-text">
+              <span>Mengunggah file...</span>
               <span>{{ uploadProgress }}%</span>
             </div>
-            <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
-              <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" :style="{ width: `${uploadProgress}%` }"></div>
+            <div class="progress-bar-wrapper">
+              <div class="progress-bar-fill" :style="{ width: `${uploadProgress}%` }"></div>
             </div>
           </div>
 
@@ -414,15 +415,22 @@ export default {
           
           .document-error {
             margin-top: 0.5rem;
-            padding: 0.5rem;
+            padding: 0.75rem;
             background-color: var(--r-50);
-            border-left: 3px solid var(--r-500);
+            border: 1px solid var(--r-100);
+            border-left: 4px solid var(--r-500);
             border-radius: var(--border-radius-small);
             
             .error-text {
               margin: 0;
-              font-size: var(--font-size-mini);
+              font-size: var(--font-size-small);
+              font-weight: var(--font-weight-bold);
               color: var(--r-800);
+            }
+            .error-detail {
+              margin: 0.25rem 0 0 0;
+              font-size: var(--font-size-mini);
+              color: var(--r-700);
               word-break: break-word;
             }
           }
@@ -434,6 +442,59 @@ export default {
   @keyframes spin {
     100% {
       transform: rotate(360deg);
+    }
+  }
+
+  @keyframes progress-stripes {
+    from {
+      background-position: 1rem 0;
+    }
+    to {
+      background-position: 0 0;
+    }
+  }
+
+  .upload-progress-container {
+    padding: 1rem;
+    background: var(--color-background-secondary);
+    border-radius: var(--border-radius-medium);
+    border: 1px solid var(--color-border);
+    margin-bottom: 1rem;
+
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--font-size-small);
+      color: var(--s-700);
+      margin-bottom: 0.5rem;
+      font-weight: var(--font-weight-medium);
+    }
+
+    .progress-bar-wrapper {
+      width: 100%;
+      background-color: var(--s-200);
+      border-radius: 9999px;
+      height: 0.75rem;
+      overflow: hidden;
+
+      .progress-bar-fill {
+        height: 100%;
+        background-color: var(--w-500);
+        border-radius: 9999px;
+        transition: width 0.3s ease;
+        background-image: linear-gradient(
+          45deg,
+          rgba(255, 255, 255, 0.15) 25%,
+          transparent 25%,
+          transparent 50%,
+          rgba(255, 255, 255, 0.15) 50%,
+          rgba(255, 255, 255, 0.15) 75%,
+          transparent 75%,
+          transparent
+        );
+        background-size: 1rem 1rem;
+        animation: progress-stripes 1s linear infinite;
+      }
     }
   }
 
