@@ -1,9 +1,8 @@
 class Whatsapp::Providers::LunarsenderService < Whatsapp::Providers::BaseService
-  def send_message(message)
+  def send_message(phone_number, message)
     return unless message.outgoing_content.present?
     
-    number = message.conversation.contact_inbox.source_id
-    # Ensure number starts with + or just use the number if it already has country code
+    number = phone_number.to_s
     number = number.start_with?('+') ? number[1..-1] : number
 
     body = {
@@ -13,11 +12,17 @@ class Whatsapp::Providers::LunarsenderService < Whatsapp::Providers::BaseService
       message: message.outgoing_content
     }
 
-    response = HTTParty.post(
+    # Many of these simple gateways accept query params via POST or GET
+    # Changing to GET to match the user's manual API call URL exactly
+    response = HTTParty.get(
       "https://sender.digilunar.com/send-message",
-      body: body.to_json,
-      headers: { 'Content-Type' => 'application/json' }
+      headers: {
+        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      query: body
     )
+    
+    Rails.logger.info "[LUNARSENDER RESPONSE] body: #{response.body}, code: #{response.code}"
     
     process_response(message, response)
   end
@@ -25,6 +30,10 @@ class Whatsapp::Providers::LunarsenderService < Whatsapp::Providers::BaseService
   def validate_provider_config?
     # Simple check to ensure api_key and sender exist
     whatsapp_channel.provider_config['api_key'].present? && whatsapp_channel.provider_config['sender'].present?
+  end
+
+  def sync_templates
+    []
   end
 
   private

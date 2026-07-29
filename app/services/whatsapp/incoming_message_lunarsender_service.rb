@@ -4,22 +4,28 @@ class Whatsapp::IncomingMessageLunarsenderService
   pattr_initialize [:inbox!, :params!]
 
   def perform
-    return if params[:message].blank? || params[:participant].blank?
+    # Webhook payload might be nested under `whatsapp` key
+    @msg_params = params[:whatsapp] || params
+    
+    sender_id = @msg_params[:participant].presence || @msg_params[:sender].presence
+    return if @msg_params[:message].blank? || sender_id.blank?
 
     # participant looks like "62899999999@s.whatsapp.net" or "62899999999@g.us"
     # For now we'll just parse the number
-    @sender_number = params[:participant].split('@').first
-    # Ensure it has +
-    @sender_number = "+#{@sender_number}" unless @sender_number.start_with?('+')
+    @sender_number = sender_id.split('@').first
+    phone_number = @sender_number.start_with?('+') ? @sender_number : "+#{@sender_number}"
 
-    @contact = ContactBuilder.new(
+    contact_inbox = ::ContactInboxWithContactBuilder.new(
       source_id: @sender_number,
       inbox: inbox,
       contact_attributes: {
-        name: params[:pushName].presence || @sender_number,
-        phone_number: @sender_number
+        name: @msg_params[:pushName].presence || phone_number,
+        phone_number: phone_number
       }
     ).perform
+
+    @contact_inbox = contact_inbox
+    @contact = contact_inbox.contact
 
     return unless @contact
 
@@ -42,6 +48,7 @@ class Whatsapp::IncomingMessageLunarsenderService
 
     @conversation = ::Conversation.create!(
       inbox_id: inbox.id,
+      contact_id: @contact.id,
       contact_inbox_id: @contact_inbox.id,
       account_id: inbox.account_id
     )
@@ -49,24 +56,25 @@ class Whatsapp::IncomingMessageLunarsenderService
 
   def create_message
     # Use AllData.key.id if present as the source_id, otherwise generate one
-    source_id = params.dig('AllData', 'key', 'id') || SecureRandom.uuid
+    # Note: Using with_indifferent_access if needed, or dig into the Hash
+    source_id = @msg_params.dig('AllData', 'key', 'id') || @msg_params.dig(:AllData, :key, :id) || SecureRandom.uuid
 
     # Prevent duplicate messages
     return if Message.find_by(source_id: source_id)
 
     @message = @conversation.messages.build(
-      content: params[:message],
+      content: @msg_params[:message],
       account_id: inbox.account_id,
       inbox_id: inbox.id,
-      message_type: params[:fromMe] ? :outgoing : :incoming,
+      message_type: @msg_params[:fromMe] ? :outgoing : :incoming,
       status: :sent,
-      sender: params[:fromMe] ? nil : @contact,
+      sender: @msg_params[:fromMe] ? nil : @contact,
       source_id: source_id
     )
 
     # Attach any media
-    if params[:mediaUrl].present? && params[:messageType] != 'text'
-      attach_file(params[:mediaUrl])
+    if @msg_params[:mediaUrl].present? && @msg_params[:messageType] != 'text'
+      attach_file(@msg_params[:mediaUrl])
     end
 
     @message.save!

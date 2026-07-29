@@ -3,6 +3,7 @@ import addDays from 'date-fns/addDays';
 import DatePicker from 'vue-datepicker-next';
 export default {
   components: { DatePicker },
+  inheritAttrs: false,
   props: {
     confirmText: {
       type: String,
@@ -43,6 +44,7 @@ export default {
       :value="value"
       :disabled-date="disableBeforeToday"
       @change="handleChange"
+      v-bind="$attrs"
     />
   </div>
 </template>

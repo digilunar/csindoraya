@@ -110,6 +110,8 @@ export default {
       widgetBubblePosition: 'right',
       widgetBubbleType: 'standard',
       widgetBubbleLauncherTitle: '',
+      lunarsenderApiKey: '',
+      lunarsenderSender: '',
     };
   },
   computed: {
@@ -481,6 +483,11 @@ export default {
         ? this.inbox.help_center.slug
         : '';
 
+      if (this.isAWhatsAppChannel && this.whatsAppAPIProvider === 'lunarsender') {
+        this.lunarsenderApiKey = this.inbox.provider_config?.api_key || '';
+        this.lunarsenderSender = this.inbox.provider_config?.sender || '';
+      }
+
       const savedBubbleSettings = LocalStorage.get(
         this.widgetBuilderStorageKey
       );
@@ -605,6 +612,15 @@ export default {
               this.isInboundEmailEnabled && this.continuityViaEmail,
           },
         };
+
+        if (this.isAWhatsAppChannel && this.whatsAppAPIProvider === 'lunarsender') {
+          payload.channel.provider_config = {
+            ...(this.inbox.provider_config || {}),
+            api_key: this.lunarsenderApiKey,
+            sender: this.lunarsenderSender,
+          };
+        }
+
         if (this.avatarFile) {
           payload.avatar = this.avatarFile;
         }
@@ -843,6 +859,28 @@ export default {
                 type="text"
                 disabled
                 class="!mb-0"
+              />
+            </SettingsFieldSection>
+
+            <SettingsFieldSection
+              v-if="isAWhatsAppChannel && whatsAppAPIProvider === 'lunarsender'"
+              label="Sender Number"
+            >
+              <woot-input
+                v-model="lunarsenderSender"
+                class="[&>input]:!mb-0"
+                placeholder="Ex: 62812345678"
+              />
+            </SettingsFieldSection>
+
+            <SettingsFieldSection
+              v-if="isAWhatsAppChannel && whatsAppAPIProvider === 'lunarsender'"
+              label="API Key"
+            >
+              <woot-input
+                v-model="lunarsenderApiKey"
+                class="[&>input]:!mb-0"
+                placeholder="Enter LunarSender API Key"
               />
             </SettingsFieldSection>
 

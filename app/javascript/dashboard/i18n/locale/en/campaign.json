@@ -229,8 +229,8 @@
             "ERROR": "Title is required"
           },
           "MESSAGE": {
-            "LABEL": "Message",
-            "PLACEHOLDER": "Please enter the message of campaign",
+            "LABEL": "Message (Use {'{'}nama{'}'} for name, {'{'}nomor{'}'} for number)",
+            "PLACEHOLDER": "e.g. Hello {'{'}nama{'}'}, your number is {'{'}nomor{'}'}",
             "ERROR": "Message is required"
           },
           "INBOX": {
@@ -247,6 +247,26 @@
             "LABEL": "Scheduled time",
             "PLACEHOLDER": "Please select the time",
             "ERROR": "Scheduled time is required"
+          },
+          "DELAY": {
+            "LABEL": "Delay per number (seconds)",
+            "PLACEHOLDER": "e.g., 3",
+            "ERROR": "Delay is required"
+          },
+          "DELAY_MIN": {
+            "LABEL": "Min Delay (seconds)"
+          },
+          "DELAY_MAX": {
+            "LABEL": "Max Delay (seconds)",
+            "PLACEHOLDER": "e.g., 5",
+            "ERROR": "Must be > min"
+          },
+          "IS_RANDOM_DELAY": {
+            "LABEL": "Randomize delay"
+          },
+          "MANUAL_NUMBERS": {
+            "LABEL": "Or enter numbers manually (one per line)",
+            "PLACEHOLDER": "e.g. Budi, 628123456789\nAgus{'|'}628111222333"
           },
           "BUTTONS": {
             "CREATE": "Create",

@@ -1,0 +1,70 @@
+﻿diff --git a/app/javascript/dashboard/routes/dashboard/settings/inbox/Settings.vue b/app/javascript/dashboard/routes/dashboard/settings/inbox/Settings.vue
+index 9e5206bb3..7cde66f49 100644
+--- a/app/javascript/dashboard/routes/dashboard/settings/inbox/Settings.vue
++++ b/app/javascript/dashboard/routes/dashboard/settings/inbox/Settings.vue
+@@ -110,6 +110,8 @@ export default {
+       widgetBubblePosition: 'right',
+       widgetBubbleType: 'standard',
+       widgetBubbleLauncherTitle: '',
++      lunarsenderApiKey: '',
++      lunarsenderSender: '',
+     };
+   },
+   computed: {
+@@ -481,6 +483,11 @@ export default {
+         ? this.inbox.help_center.slug
+         : '';
+ 
++      if (this.isAWhatsAppChannel && this.whatsAppAPIProvider === 'lunarsender') {
++        this.lunarsenderApiKey = this.inbox.provider_config?.api_key || '';
++        this.lunarsenderSender = this.inbox.provider_config?.sender || '';
++      }
++
+       const savedBubbleSettings = LocalStorage.get(
+         this.widgetBuilderStorageKey
+       );
+@@ -605,6 +612,15 @@ export default {
+               this.isInboundEmailEnabled && this.continuityViaEmail,
+           },
+         };
++
++        if (this.isAWhatsAppChannel && this.whatsAppAPIProvider === 'lunarsender') {
++          payload.channel.provider_config = {
++            ...(this.inbox.provider_config || {}),
++            api_key: this.lunarsenderApiKey,
++            sender: this.lunarsenderSender,
++          };
++        }
++
+         if (this.avatarFile) {
+           payload.avatar = this.avatarFile;
+         }
+@@ -846,6 +862,28 @@ export default {
+               />
+             </SettingsFieldSection>
+ 
++            <SettingsFieldSection
++              v-if="isAWhatsAppChannel && whatsAppAPIProvider === 'lunarsender'"
++              label="Sender Number"
++            >
++              <woot-input
++                v-model="lunarsenderSender"
++                class="[&>input]:!mb-0"
++                placeholder="Ex: 62812345678"
++              />
++            </SettingsFieldSection>
++
++            <SettingsFieldSection
++              v-if="isAWhatsAppChannel && whatsAppAPIProvider === 'lunarsender'"
++              label="API Key"
++            >
++              <woot-input
++                v-model="lunarsenderApiKey"
++                class="[&>input]:!mb-0"
++                placeholder="Enter LunarSender API Key"
++              />
++            </SettingsFieldSection>
++
+             <SettingsFieldSection
+               :label="$t('INBOX_MGMT.HELP_CENTER.LABEL')"
+               :help-text="$t('INBOX_MGMT.HELP_CENTER.SUB_TEXT')"

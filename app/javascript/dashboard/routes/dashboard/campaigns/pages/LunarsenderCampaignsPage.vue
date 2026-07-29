@@ -28,7 +28,7 @@ const lunarsenderInboxes = computed(
 const lunarsenderInboxIds = computed(() => lunarsenderInboxes.value.map(i => i.id));
 
 const WhatsAppCampaigns = computed(
-  () => getters['campaigns/getWhatsAppCampaigns'].value.filter(c => lunarsenderInboxIds.value.includes(c.inbox_id))
+  () => getters['campaigns/getWhatsAppCampaigns'].value.filter(c => lunarsenderInboxIds.value.includes(c.inbox?.id))
 );
 
 const hasNoWhatsAppCampaigns = computed(

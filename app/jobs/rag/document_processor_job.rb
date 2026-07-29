@@ -15,13 +15,13 @@ class Rag::DocumentProcessorJob < ApplicationJob
       extracted_data = loader.load
     end
 
-    if extracted_data.blank?
-      document.update!(status: :failed)
-      Rails.logger.warn "Document extraction returned empty: #{document_id}"
+    full_content = extracted_data.map { |chunk| chunk[:content].to_s }.join("\n\n")
+
+    if full_content.strip.blank?
+      document.update!(status: :failed, last_error: "File is empty or contains no readable text")
+      Rails.logger.warn "Document extraction returned empty or no text: #{document_id}"
       return
     end
-
-    full_content = extracted_data.map { |chunk| chunk[:content] }.join("\n\n")
 
     # Chunk and add to knowledge base
     chunks = chunk_content(full_content)
@@ -69,6 +69,6 @@ class Rag::DocumentProcessorJob < ApplicationJob
     end
 
     chunks << content[start..] if start < content.length
-    chunks.compact
+    chunks.map(&:strip).reject(&:blank?)
   end
 end

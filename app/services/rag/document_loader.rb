@@ -98,6 +98,9 @@ module Rag
       require 'pdf-reader'
       reader = PDF::Reader.new(file_path)
       pages = reader.pages.map(&:text).join("\n\n")
+      
+      return extract_pdf_ocr if pages.strip.empty?
+      
       [{ content: pages, type: 'pdf', source: file_path }]
     rescue LoadError
       extract_pdf_ocr

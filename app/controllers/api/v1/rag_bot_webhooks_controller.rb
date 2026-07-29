@@ -10,6 +10,17 @@ class Api::V1::RagBotWebhooksController < ActionController::API
 
     return head :ok unless payload['message_type'] == 'incoming' && payload['content'].present?
 
+    conversation_payload = payload['conversation'] || {}
+    
+    # Hentikan bot jika percakapan sudah diambil alih oleh agen manusia
+    return head :ok if conversation_payload.dig('meta', 'assignee', 'id').present?
+    
+    # Hentikan bot jika status percakapan sudah 'resolved' (selesai) atau 'snoozed'
+    # Bot diizinkan membalas jika statusnya 'pending', 'bot', atau 'open' (Unassigned)
+    if conversation_payload['status'].present? && %w[resolved snoozed].include?(conversation_payload['status'])
+      return head :ok
+    end
+
     ai_reply = nil
 
     if @rag_bot.use_general_ai_setting && @rag_bot.account.custom_ai_integration.present?
@@ -36,8 +47,9 @@ class Api::V1::RagBotWebhooksController < ActionController::API
       system_prompt += "2. Anda WAJIB memberikan jawaban akhir dalam format JSON murni dengan struktur: {\"status\": \"RELEVAN\" | \"TIDAK_RELEVAN\", \"reply\": \"Jawaban Anda\"}.\n"
       system_prompt += "3. Jika pertanyaan melenceng, set status ke TIDAK_RELEVAN dan kosongkan reply.\n"
       system_prompt += "4. Jika relevan, set status ke RELEVAN dan tulis jawaban di dalam reply tanpa embel-embel.\n"
-      system_prompt += "5. DILARANG KERAS menutup pesan dengan pertanyaan seperti 'Ada yang bisa saya bantu?' atau membuat daftar opsi menu layanan. Cukup jawab inti pertanyaannya saja.\n"
-      system_prompt += "6. Gunakan format Markdown murni (* atau -) untuk list. JANGAN PERNAH menyebutkan bahwa Anda adalah AI atau Language Model.\n"
+      system_prompt += "5. Jika pesan user hanya berupa SAPAAN (seperti 'Halo', 'Hai', 'Malam', dsb), WAJIB balas dengan sapaan ramah di dalam reply (misal: 'Halo! Ada yang bisa kami bantu hari ini?').\n"
+      system_prompt += "6. DILARANG KERAS menutup pesan dengan pertanyaan seperti 'Ada yang bisa saya bantu?' atau membuat daftar opsi menu layanan KECUALI merespons sapaan. Cukup jawab inti pertanyaannya saja.\n"
+      system_prompt += "7. Gunakan format Markdown murni (* atau -) untuk list. JANGAN PERNAH menyebutkan bahwa Anda adalah AI atau Language Model.\n"
 
       messages_payload = [
         { role: 'system', content: system_prompt }
@@ -54,8 +66,19 @@ class Api::V1::RagBotWebhooksController < ActionController::API
         recent_messages.each do |msg|
           next if msg.content.blank?
           role = msg.message_type == 'incoming' ? 'user' : 'assistant'
-          messages_payload << { role: role, content: msg.content }
+          
+          # Combine consecutive messages from the same role
+          if messages_payload.last && messages_payload.last[:role] == role
+            messages_payload.last[:content] += "\n\n#{msg.content}"
+          else
+            messages_payload << { role: role, content: msg.content }
+          end
         end
+      end
+
+      # Ensure we don't start with assistant right after system if AI requires user first
+      if messages_payload.length == 1 && messages_payload.last[:role] == 'system' && recent_messages.first && recent_messages.first.message_type != 'incoming'
+        messages_payload << { role: 'user', content: '(Konteks obrolan sebelumnya)' }
       end
 
       user_prompt = "Pertanyaan Saat Ini: #{payload['content']}"
@@ -65,7 +88,11 @@ class Api::V1::RagBotWebhooksController < ActionController::API
       user_prompt += "Jika pertanyaan MELENCENG atau TIDAK ADA di Konteks: {\"status\": \"TIDAK_RELEVAN\", \"reply\": \"\"}\n"
       user_prompt += "JANGAN tambahkan teks di luar JSON."
 
-      messages_payload << { role: 'user', content: user_prompt }
+      if messages_payload.last && messages_payload.last[:role] == 'user'
+        messages_payload.last[:content] += "\n\n#{user_prompt}"
+      else
+        messages_payload << { role: 'user', content: user_prompt }
+      end
 
       req.body = {
         model: ai_setting.ai_model,
@@ -145,7 +172,8 @@ class Api::V1::RagBotWebhooksController < ActionController::API
         conversation.messages.create!(
           content: ai_reply,
           message_type: :outgoing,
-          account_id: @rag_bot.account_id
+          account_id: @rag_bot.account_id,
+          inbox_id: conversation.inbox_id
         )
       end
     end
