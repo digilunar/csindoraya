@@ -147,18 +147,36 @@ module Rag
     end
 
     def run_tesseract_binary(file_path)
-      # Convert PDF pages to images first if needed
       input_file = file_path
       output_base = "#{file_path}_ocr"
 
-      # Use tesseract binary directly (compatible with Ruby 3.4+)
-      result = `tesseract "#{input_file}" "#{output_base}" -l ind+eng 2>/dev/null`
-      output_txt = "#{output_base}.txt"
+      if pdf_file?
+        image_prefix = "#{file_path}_page"
+        `pdftoppm -jpeg -r 150 "#{input_file}" "#{image_prefix}" 2>/dev/null`
+        
+        images = Dir.glob("#{image_prefix}-*.jpg").sort
+        if images.any?
+          full_text = ""
+          images.each_with_index do |img, index|
+            page_output = "#{output_base}_#{index}"
+            `tesseract "#{img}" "#{page_output}" -l ind+eng 2>/dev/null`
+            if File.exist?("#{page_output}.txt")
+              full_text += File.read("#{page_output}.txt", encoding: 'UTF-8').strip + "\n\n"
+              File.delete("#{page_output}.txt")
+            end
+            File.delete(img)
+          end
+          return full_text if full_text.present?
+        end
+      else
+        `tesseract "#{input_file}" "#{output_base}" -l ind+eng 2>/dev/null`
+        output_txt = "#{output_base}.txt"
 
-      if File.exist?(output_txt)
-        text = File.read(output_txt, encoding: 'UTF-8').strip
-        File.delete(output_txt)
-        return text if text.present?
+        if File.exist?(output_txt)
+          text = File.read(output_txt, encoding: 'UTF-8').strip
+          File.delete(output_txt)
+          return text if text.present?
+        end
       end
 
       Rails.logger.error "Tesseract OCR returned empty result for: #{file_path}"
