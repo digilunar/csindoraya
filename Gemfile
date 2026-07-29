@@ -199,7 +199,6 @@ gem 'ai-agents', '>= 0.10.0'
 
 gem 'pdf-reader'
 gem 'roo'
-gem 'tesseract-ocr'
 
 # TODO: Move this gem as a dependency of ai-agents
 gem 'ruby_llm', '>= 1.14.1'

@@ -143,18 +143,29 @@ module Rag
     end
 
     def run_ocr(file_path)
-      require 'tesseract-ocr'
-      TesseractOCR.new(file_path).run
-    rescue LoadError, StandardError => e
-      Rails.logger.error "Tesseract OCR unavailable: #{e.message}"
-      try_easy_ocr(file_path)
+      run_tesseract_binary(file_path)
     end
 
-    def try_easy_ocr(file_path)
-      require 'easyocr-ruby'
-      EasyOCR.new(lang: 'en').read_text(file_path).join(' ')
-    rescue LoadError, StandardError => e
-      raise OcrFailed, "No OCR library available"
+    def run_tesseract_binary(file_path)
+      # Convert PDF pages to images first if needed
+      input_file = file_path
+      output_base = "#{file_path}_ocr"
+
+      # Use tesseract binary directly (compatible with Ruby 3.4+)
+      result = `tesseract "#{input_file}" "#{output_base}" -l ind+eng 2>/dev/null`
+      output_txt = "#{output_base}.txt"
+
+      if File.exist?(output_txt)
+        text = File.read(output_txt, encoding: 'UTF-8').strip
+        File.delete(output_txt)
+        return text if text.present?
+      end
+
+      Rails.logger.error "Tesseract OCR returned empty result for: #{file_path}"
+      raise OcrFailed, "OCR returned empty result"
+    rescue StandardError => e
+      Rails.logger.error "Tesseract OCR failed: #{e.message}"
+      raise OcrFailed, "OCR failed: #{e.message}"
     end
   end
 end
