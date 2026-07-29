@@ -44,12 +44,12 @@ class Api::V1::RagBotWebhooksController < ActionController::API
 
       system_prompt += "\n\nATURAN KETAT (GUARDRAILS):\n"
       system_prompt += "1. Anda adalah asisten virtual untuk #{@rag_bot.name}. Tugas Anda HANYA memberikan jawaban langsung dan tuntas berdasarkan teks Konteks Pengetahuan di atas.\n"
-      system_prompt += "2. Anda WAJIB memberikan jawaban akhir dalam format JSON murni dengan struktur: {\"status\": \"RELEVAN\" | \"TIDAK_RELEVAN\", \"reply\": \"Jawaban Anda\"}.\n"
+      system_prompt += "2. Anda WAJIB memberikan jawaban akhir dalam format JSON murni dengan struktur: {\"status\": \"RELEVAN\" | \"TIDAK_RELEVAN\" | \"MENU_ROUTING\" | \"HANDOVER_1\" | \"HANDOVER_2\" | \"HANDOVER_3\", \"reply\": \"Jawaban Anda\"}.\n"
       system_prompt += "3. Jika pertanyaan melenceng, set status ke TIDAK_RELEVAN dan kosongkan reply.\n"
-      system_prompt += "4. Jika relevan, set status ke RELEVAN dan tulis jawaban di dalam reply tanpa embel-embel.\n"
-      system_prompt += "5. Jika pesan user hanya berupa SAPAAN (seperti 'Halo', 'Hai', 'Malam', dsb), WAJIB balas dengan sapaan ramah di dalam reply (misal: 'Halo! Ada yang bisa kami bantu hari ini?').\n"
-      system_prompt += "6. DILARANG KERAS menutup pesan dengan pertanyaan seperti 'Ada yang bisa saya bantu?' atau membuat daftar opsi menu layanan KECUALI merespons sapaan. Cukup jawab inti pertanyaannya saja.\n"
-      system_prompt += "7. Gunakan format Markdown murni (* atau -) untuk list. JANGAN PERNAH menyebutkan bahwa Anda adalah AI atau Language Model.\n"
+      system_prompt += "4. Jika relevan dengan konteks, set status ke RELEVAN dan tulis jawaban di dalam reply tanpa embel-embel.\n"
+      system_prompt += "5. Jika pesan user berupa SAPAAN (seperti 'Halo', 'Hai'), WAJIB balas sapaan ramah dengan status RELEVAN.\n"
+      system_prompt += "6. JIKA pengguna menanyakan/menyebutkan tentang 'Sekretariat', 'Verifikasi', 'Pemantauan', ATAU 'bicara dengan manusia/admin', set status ke MENU_ROUTING dan reply dengan: 'Silakan pilih tim yang ingin Anda hubungi dengan membalas angka berikut:\\n1. Sekretariat\\n2. Verifikasi\\n3. Pemantauan'\n"
+      system_prompt += "7. JIKA sebelumnya Anda baru saja memberikan Menu Routing dan pengguna membalas dengan HANYA angka '1', '2', atau '3', set status ke HANDOVER_1, HANDOVER_2, atau HANDOVER_3 (sesuai angkanya) dan berikan reply konfirmasi (misal: 'Baik, percakapan ini akan diteruskan ke tim Sekretariat.').\n"
 
       messages_payload = [
         { role: 'system', content: system_prompt }
@@ -84,8 +84,7 @@ class Api::V1::RagBotWebhooksController < ActionController::API
       user_prompt = "Pertanyaan Saat Ini: #{payload['content']}"
       user_prompt += "\n\n[ATURAN KETAT MEMBALAS (WAJIB JSON MURNI)]\n"
       user_prompt += "Anda dilarang keras memulai jawaban dengan sapaan seperti 'Hai' atau 'Selamat datang'. Langsung ke intinya.\n"
-      user_prompt += "Jika pertanyaan BISA DIJAWAB menggunakan Konteks: {\"status\": \"RELEVAN\", \"reply\": \"Jawaban faktual Anda dari konteks\"}\n"
-      user_prompt += "Jika pertanyaan MELENCENG atau TIDAK ADA di Konteks: {\"status\": \"TIDAK_RELEVAN\", \"reply\": \"\"}\n"
+      user_prompt += "PILIHAN STATUS: RELEVAN, TIDAK_RELEVAN, MENU_ROUTING, HANDOVER_1, HANDOVER_2, HANDOVER_3\n"
       user_prompt += "JANGAN tambahkan teks di luar JSON."
 
       if messages_payload.last && messages_payload.last[:role] == 'user'
@@ -111,8 +110,18 @@ class Api::V1::RagBotWebhooksController < ActionController::API
           
           begin
             json_reply = JSON.parse(raw_ai_reply)
-            if json_reply['status'].to_s.upcase == 'TIDAK_RELEVAN'
+            status_reply = json_reply['status'].to_s.upcase
+            
+            if status_reply == 'TIDAK_RELEVAN'
               ai_reply = "Mohon maaf kak, untuk saat ini saya hanya bisa membantu menjawab pertanyaan seputar layanan kami saja. Apakah ada hal lain terkait layanan kami yang bisa dibantu?"
+            elsif status_reply.start_with?('HANDOVER_')
+              ai_reply = json_reply['reply']
+              team_map = { 'HANDOVER_1' => 1, 'HANDOVER_2' => 2, 'HANDOVER_3' => 3 }
+              if conversation_id && team_map[status_reply]
+                team_id = team_map[status_reply]
+                conversation = @rag_bot.account.conversations.find(conversation_id)
+                conversation.update!(team_id: team_id, status: 'open')
+              end
             else
               ai_reply = json_reply['reply']
             end
