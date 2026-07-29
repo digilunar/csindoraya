@@ -30,7 +30,14 @@ class Webhooks::WhatsappController < ActionController::API
   end
 
   def whatsapp_channel
-    @whatsapp_channel ||= whatsapp_business_payload_channel || Channel::Whatsapp.find_by(phone_number: params[:phone_number])
+    return @whatsapp_channel if @whatsapp_channel
+
+    phone = params[:phone_number].to_s
+    phone_with_plus = phone.start_with?('+') ? phone : "+#{phone}"
+    
+    @whatsapp_channel = whatsapp_business_payload_channel || 
+                        Channel::Whatsapp.find_by(phone_number: phone) || 
+                        Channel::Whatsapp.find_by(phone_number: phone_with_plus)
   end
 
   def meta_signature_verification_required?
