@@ -38,7 +38,7 @@ const actions = {
     }
   },
 
-  async upload({ commit }, { accountId, formData }) {
+  async upload({ commit }, { accountId, formData, onUploadProgress }) {
     commit(types.UPLOAD_DOCUMENTS);
     try {
       const response = await axios.post(
@@ -48,6 +48,7 @@ const actions = {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
+          onUploadProgress,
         }
       );
       commit(types.UPLOAD_DOCUMENTS_SUCCESS, response.data);

@@ -107,19 +107,30 @@
             <div class="file-item" v-for="(file, index) in selectedFiles" :key="index">
               <fluent-icon :icon="getFileIcon(file.type)" size="16" />
               <span>{{ file.name }}</span>
-              <span @click="removeFile(index)" class="inline-block cursor-pointer">
+              <span @click="removeFile(index)" class="inline-block cursor-pointer" v-if="!isUploading">
                 <NextButton variant="ghost" color="slate" icon="i-lucide-x" />
               </span>
             </div>
           </div>
 
+          <!-- Progress Bar -->
+          <div v-if="isUploading" class="upload-progress-container mt-4">
+            <div class="flex justify-between text-sm mb-1 text-slate-600">
+              <span>Mengunggah...</span>
+              <span>{{ uploadProgress }}%</span>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-2.5 dark:bg-slate-700">
+              <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" :style="{ width: `${uploadProgress}%` }"></div>
+            </div>
+          </div>
+
           <div class="modal-footer">
-            <span @click="closeUploadModal" class="inline-block cursor-pointer">
+            <span @click="closeUploadModal" class="inline-block cursor-pointer" v-if="!isUploading">
               <NextButton variant="ghost" color="slate">
                 {{ $t('RAG_DOCUMENTS.CANCEL') }}
               </NextButton>
             </span>
-            <NextButton type="submit" variant="primary" :loading="isUploading" :disabled="selectedFiles.length === 0">
+            <NextButton type="submit" variant="primary" :loading="isUploading" :disabled="selectedFiles.length === 0 || isUploading">
               {{ $t('RAG_DOCUMENTS.UPLOAD') }}
             </NextButton>
           </div>
@@ -164,6 +175,7 @@ export default {
       showUploadModal: false,
       uploadScope: 'account',
       isUploading: false,
+      uploadProgress: 0,
       pollingInterval: null,
     };
   },
@@ -242,6 +254,7 @@ export default {
 
     async uploadDocuments() {
       this.isUploading = true;
+      this.uploadProgress = 0;
 
       const formData = new FormData();
       this.selectedFiles.forEach(file => {
@@ -255,6 +268,14 @@ export default {
           accountId: this.accountId,
           ragBotId: this.ragBotId,
           formData,
+          onUploadProgress: progressEvent => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              this.uploadProgress = percentCompleted;
+            }
+          },
         });
         this.showAlert(this.$t('RAG_DOCUMENTS.UPLOAD_SUCCESS'), 'success');
         this.closeUploadModal();
@@ -263,6 +284,7 @@ export default {
         this.showAlert(this.$t('RAG_DOCUMENTS.ERRORS.UPLOAD'), 'error');
       } finally {
         this.isUploading = false;
+        this.uploadProgress = 0;
       }
     },
 
