@@ -25,7 +25,7 @@ class Api::V1::RagBotWebhooksController < ActionController::API
 
     if @rag_bot.use_general_ai_setting && @rag_bot.account.custom_ai_integration.present?
       ai_setting = @rag_bot.account.custom_ai_integration
-      uri = URI.parse(ai_setting.endpoint_url)
+      uri = URI.parse(ai_setting.endpoint_url.strip)
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = (uri.scheme == 'https')
       http.read_timeout = 180
