@@ -137,7 +137,11 @@ class Webhooks::WhatsappEventsJob < MutexApplicationJob
   def find_channel_by_url_param(params)
     return unless params[:phone_number]
 
-    Channel::Whatsapp.find_by(phone_number: params[:phone_number])
+    phone = params[:phone_number].to_s
+    phone_with_plus = phone.start_with?('+') ? phone : "+#{phone}"
+
+    Channel::Whatsapp.find_by(phone_number: phone) || 
+    Channel::Whatsapp.find_by(phone_number: phone_with_plus)
   end
 
   def find_channel_from_whatsapp_business_payload(params)
