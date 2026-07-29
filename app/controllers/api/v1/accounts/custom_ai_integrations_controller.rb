@@ -28,10 +28,10 @@ class Api::V1::Accounts::CustomAiIntegrationsController < Api::V1::Accounts::Bas
   end
 
   def test
-    endpoint = params[:endpoint_url]
-    api_key = params[:api_key]
-    model = params[:ai_model]
-    system_prompt = params[:system_prompt]
+    endpoint = params[:endpoint_url].to_s.strip
+    api_key = params[:api_key].to_s.strip
+    model = params[:ai_model].to_s.strip
+    system_prompt = params[:system_prompt].to_s.strip
 
     require 'net/http'
     require 'uri'
