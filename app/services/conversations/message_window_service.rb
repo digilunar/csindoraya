@@ -25,7 +25,7 @@ class Conversations::MessageWindowService
     when 'Channel::Tiktok'
       tiktok_messaging_window
     when 'Channel::Whatsapp'
-      MESSAGING_WINDOW_24_HOURS
+      nil
     when 'Channel::TwilioSms'
       twilio_messaging_window
     end
@@ -38,14 +38,12 @@ class Conversations::MessageWindowService
   end
 
   def api_messaging_window
-    return if @conversation.inbox.channel.additional_attributes['agent_reply_time_window'].blank?
-
-    @conversation.inbox.channel.additional_attributes['agent_reply_time_window'].to_i.hours
+    nil
   end
 
   # Check medium of the inbox to determine the messaging window
   def twilio_messaging_window
-    @conversation.inbox.channel.medium == 'whatsapp' ? MESSAGING_WINDOW_24_HOURS : nil
+    nil
   end
 
   def messenger_messaging_window

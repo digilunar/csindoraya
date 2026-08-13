@@ -4,7 +4,7 @@ import { useAlert } from 'dashboard/composables';
 import ReportFilters from './ReportFilters.vue';
 import ReportContainer from '../ReportContainer.vue';
 import { GROUP_BY_FILTER } from '../constants';
-import { generateFileName } from '../../../../../helper/downloadHelper';
+import { generateFileName, downloadCsvFile } from '../../../../../helper/downloadHelper';
 import ReportHeader from './ReportHeader.vue';
 
 export default {
@@ -51,6 +51,7 @@ export default {
       selectedFilter: this.selectedItem,
       groupBy: GROUP_BY_FILTER[1],
       businessHours: false,
+      isDownloadingCustomDashboard: false,
     };
   },
   computed: {
@@ -133,6 +134,26 @@ export default {
         this.$store.dispatch(dispatchMethods[type], params);
       }
     },
+    downloadCustomDashboard() {
+      this.isDownloadingCustomDashboard = true;
+      const fromDate = this.from || (Date.now() / 1000 - 30 * 24 * 60 * 60);
+      const toDate = this.to || (Date.now() / 1000);
+      const startDate = new Date(fromDate * 1000).toISOString().split('T')[0];
+      const endDate = new Date(toDate * 1000).toISOString().split('T')[0];
+      const accountId = this.$route.params.accountId;
+      
+      window.axios.get(`/api/v1/accounts/${accountId}/dashboard_reports.csv?start_date=${startDate}&end_date=${endDate}`)
+        .then(response => {
+          downloadCsvFile(`dashboard_reports_${startDate}_to_${endDate}.csv`, response.data);
+        })
+        .catch(error => {
+          useAlert(this.$t('REPORT.DATA_FETCHING_FAILED') || 'Download failed');
+          console.error(error);
+        })
+        .finally(() => {
+          this.isDownloadingCustomDashboard = false;
+        });
+    },
     onFilterChange(payload) {
       const { from, to, businessHours, groupBy } = payload;
       this.from = from;
@@ -163,12 +184,22 @@ export default {
 
 <template>
   <ReportHeader :header-title="reportTitle" :has-back-button="hasBackButton">
-    <V4Button
-      :label="downloadButtonLabel"
-      icon="i-ph-download-simple"
-      size="sm"
-      @click="downloadReports"
-    />
+    <div style="display: flex; gap: 8px;">
+      <V4Button
+        :label="downloadButtonLabel"
+        icon="i-ph-download-simple"
+        size="sm"
+        @click="downloadReports"
+      />
+      <V4Button
+        label="Download Dashboard CSV"
+        icon="i-ph-file-csv"
+        size="sm"
+        color="teal"
+        :is-loading="isDownloadingCustomDashboard"
+        @click="downloadCustomDashboard"
+      />
+    </div>
   </ReportHeader>
 
   <ReportFilters
