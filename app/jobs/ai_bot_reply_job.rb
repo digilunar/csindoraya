@@ -2,13 +2,12 @@ class AiBotReplyJob < ApplicationJob
   queue_as :default
 
   def perform(message_id)
-    sleep(10) # Debounce 10 detik untuk menggabungkan pesan beruntun (karena user mengetik lambat)
-
     message = Message.find_by(id: message_id)
     return unless message
     return unless message.incoming? # Only reply to incoming messages
 
     conversation = message.conversation
+    return unless BotRoutingService.new(conversation: conversation).handles?(:custom_ai)
 
     # Prevent concurrent replies to burst messages: only reply if this is STILL the latest incoming message
     latest_incoming = conversation.messages.where(message_type: :incoming).reorder(created_at: :desc, id: :desc).first
@@ -17,7 +16,22 @@ class AiBotReplyJob < ApplicationJob
       return
     end
 
-    account = conversation.account
+    deduplication = BotReplyDeduplicationService.new(
+      conversation_id: conversation.id,
+      incoming_message_id: message.id
+    )
+    return if deduplication.completed?
+    return unless deduplication.with_lock do
+      next if deduplication.completed?
+      next unless conversation.messages.where(message_type: :incoming).reorder(created_at: :desc, id: :desc).pick(:id) == message.id
+
+      perform_reply(message, conversation, account: conversation.account, deduplication: deduplication)
+    end
+  end
+
+  private
+
+  def perform_reply(message, conversation, account:, deduplication:)
     
     integration = account.custom_ai_integration
     return unless integration.present? && integration.endpoint_url.present?
@@ -170,14 +184,8 @@ class AiBotReplyJob < ApplicationJob
           end
 
           # Create a reply in the conversation
-          Messages::MessageBuilder.new(
-            nil, # user
-            conversation,
-            {
-              content: reply_content,
-              message_type: 'outgoing'
-            }
-          ).perform
+          create_bot_reply(conversation, message, reply_content)
+          deduplication.mark_completed
         end
       else
         Rails.logger.error "AI Bot Error: #{response.code} - #{response.body}"
@@ -185,5 +193,19 @@ class AiBotReplyJob < ApplicationJob
     rescue StandardError => e
       Rails.logger.error "AI Bot Exception: #{e.message}"
     end
+  end
+
+  def create_bot_reply(conversation, incoming_message, content)
+    ActiveRecord::Base.transaction(requires_new: true) do
+      conversation.messages.create!(
+        account_id: conversation.account_id,
+        inbox_id: conversation.inbox_id,
+        message_type: :outgoing,
+        content: content,
+        bot_response_to_message_id: incoming_message.id
+      )
+    end
+  rescue ActiveRecord::RecordNotUnique
+    nil
   end
 end
