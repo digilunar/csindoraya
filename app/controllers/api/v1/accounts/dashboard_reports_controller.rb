@@ -3,10 +3,16 @@ class Api::V1::Accounts::DashboardReportsController < Api::V1::Accounts::BaseCon
 
   def show
     if request.format.csv?
-      send_data generate_chat_export_csv, filename: "chat_export_#{@start_date}_to_#{@end_date}.csv", type: 'text/csv'
+      send_data generate_metrics_export_csv, filename: "dashboard_reports_#{@start_date.to_date}_to_#{@end_date.to_date}.csv", type: 'text/csv'
     else
       render json: generate_dashboard_metrics
     end
+  end
+
+  def chat_export
+    send_data generate_chat_export_csv,
+              filename: "chat_export_#{@start_date.to_date}_to_#{@end_date.to_date}.csv",
+              type: 'text/csv'
   end
 
   private
@@ -104,66 +110,83 @@ class Api::V1::Accounts::DashboardReportsController < Api::V1::Accounts::BaseCon
 
   def generate_chat_export_csv
     require 'csv'
-    metrics = generate_dashboard_metrics
 
-    CSV.generate(headers: false) do |csv|
-      csv << ["DASHBOARD ANALITIK & EXPORT DATA PERCAKAPAN"]
-      csv << ["Rentang Waktu:", @start_date.strftime("%Y-%m-%d"), "sampai", @end_date.strftime("%Y-%m-%d")]
-      csv << []
-      
-      csv << ["A. RINGKASAN UTAMA (EXECUTIVE SUMMARY)"]
-      csv << ["Metrik", "Nilai"]
-      csv << ["Total Pesan Masuk", metrics[:executive_summary][:total_messages]]
-      csv << ["Total Pengguna Unik", metrics[:executive_summary][:total_users]]
-      csv << ["Total Tiket / Percakapan", metrics[:executive_summary][:total_tickets]]
-      csv << ["Tingkat Penyelesaian (%)", metrics[:executive_summary][:resolved_rate_percentage]]
-      csv << ["Rata-rata Waktu Respon Pertama (Detik)", metrics[:executive_summary][:avg_first_response_time_seconds]]
-      csv << []
+    csv = CSV.generate(headers: false) do |output|
+      output << ["EXPORT DATA PERCAKAPAN"]
+      output << ["Periode Mulai", @start_date.strftime('%Y-%m-%d %H:%M:%S')]
+      output << ["Periode Selesai", @end_date.strftime('%Y-%m-%d %H:%M:%S')]
+      output << ["Total Pesan", base_messages.count]
+      output << []
 
-      csv << ["B. VOLUME LAYANAN (TREN HARIAN)"]
-      csv << ["Tanggal", "Jumlah Pesan Masuk", "Jumlah Tiket Baru"]
-      all_dates = (metrics[:volume][:messages_per_day].keys + metrics[:volume][:conversations_per_day].keys).uniq.sort
-      all_dates.each do |date|
-        csv << [date, metrics[:volume][:messages_per_day][date] || 0, metrics[:volume][:conversations_per_day][date] || 0]
-      end
-      csv << []
-
-      csv << ["C & E. KINERJA HELPDESK & AGEN"]
-      csv << ["Nama Agen", "Total Ditangani", "Total Diselesaikan"]
-      metrics[:helpdesk_and_agents].each do |name, stats|
-        csv << [name, stats[:tickets], stats[:resolved]]
-      end
-      csv << []
-
-      csv << ["F. ANALISIS AI BOT"]
-      csv << ["Metrik", "Nilai"]
-      csv << ["Total Balasan AI / Otomatis", metrics[:ai_analytics][:ai_replies_count]]
-      csv << ["Total Balasan Agen Manusia", metrics[:ai_analytics][:agent_replies_count]]
-      csv << []
-
-      csv << ["D. ANALISIS PERTANYAAN (TOP KATA KUNCI)"]
-      csv << ["Kata Kunci", "Frekuensi Kemunculan"]
-      metrics[:insights][:top_keywords].each do |word, count|
-        csv << [word, count]
-      end
-      csv << []
-      csv << []
-
-      csv << ["======================================================="]
-      csv << ["DATA MENTAH PERCAKAPAN (UNTUK DATA TRAINING AI / EXPORT)"]
-      csv << ['Conversation ID', 'Timestamp', 'Sender Type', 'Sender Name', 'Message Content']
-      
-      base_messages.includes(:sender).find_each do |message|
+      output << [
+        'Conversation ID',
+        'Waktu Pesan',
+        'Tipe Pengirim',
+        'Nama Pengirim',
+        'Isi Pesan'
+      ]
+      output << []
+      base_messages.includes(:sender).order(:created_at, :id).find_each do |message|
         sender_type = message.message_type == 'incoming' ? 'User' : (message.sender_id.nil? ? 'AI' : 'Agent')
         sender_name = message.sender&.name || 'Unknown'
-        csv << [
+        output << [
           message.conversation_id,
-          message.created_at.iso8601,
+          message.created_at.strftime('%Y-%m-%d %H:%M:%S'),
           sender_type,
           sender_name,
           message.content
         ]
       end
     end
+
+    "\uFEFF#{csv}"
+  end
+
+  def generate_metrics_export_csv
+    require 'csv'
+    metrics = generate_dashboard_metrics
+
+    csv = CSV.generate(headers: false) do |output|
+      output << ['DASHBOARD ANALITIK']
+      output << ['Periode Mulai', @start_date.strftime('%Y-%m-%d %H:%M:%S')]
+      output << ['Periode Selesai', @end_date.strftime('%Y-%m-%d %H:%M:%S')]
+      output << []
+
+      output << ['RINGKASAN UTAMA']
+      output << ['Metrik', 'Nilai']
+      output << ['Total Pesan Masuk', metrics[:executive_summary][:total_messages]]
+      output << ['Total Pengguna Unik', metrics[:executive_summary][:total_users]]
+      output << ['Total Tiket / Percakapan', metrics[:executive_summary][:total_tickets]]
+      output << ['Tingkat Penyelesaian (%)', metrics[:executive_summary][:resolved_rate_percentage]]
+      output << ['Rata-rata Waktu Respon Pertama (Detik)', metrics[:executive_summary][:avg_first_response_time_seconds]]
+      output << []
+
+      output << ['VOLUME HARIAN']
+      output << ['Tanggal', 'Jumlah Pesan Masuk', 'Jumlah Tiket Baru']
+      dates = (metrics[:volume][:messages_per_day].keys + metrics[:volume][:conversations_per_day].keys).uniq.sort
+      dates.each do |date|
+        output << [date, metrics[:volume][:messages_per_day][date] || 0, metrics[:volume][:conversations_per_day][date] || 0]
+      end
+      output << []
+
+      output << ['KINERJA HELPDESK & AGEN']
+      output << ['Nama Agen', 'Total Ditangani', 'Total Diselesaikan']
+      metrics[:helpdesk_and_agents].each do |name, stats|
+        output << [name, stats[:tickets], stats[:resolved]]
+      end
+      output << []
+
+      output << ['ANALISIS AI BOT']
+      output << ['Metrik', 'Nilai']
+      output << ['Total Balasan AI / Otomatis', metrics[:ai_analytics][:ai_replies_count]]
+      output << ['Total Balasan Agen Manusia', metrics[:ai_analytics][:agent_replies_count]]
+      output << []
+
+      output << ['TOP KATA KUNCI']
+      output << ['Kata Kunci', 'Frekuensi Kemunculan']
+      metrics[:insights][:top_keywords].each { |word, count| output << [word, count] }
+    end
+
+    "\uFEFF#{csv}"
   end
 end
