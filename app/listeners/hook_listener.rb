@@ -37,10 +37,13 @@ class HookListener < BaseListener
   private
 
   def execute_hooks(event, message)
+    bot_routing = BotRoutingService.new(conversation: message.conversation)
+
     message.account.hooks.find_each do |hook|
       # In case of dialogflow, we would have a hook for each inbox.
       # Which means we will execute the same hook multiple times if the below filter isn't there
       next if hook.inbox.present? && hook.inbox != message.inbox
+      next if hook.dialogflow? && !bot_routing.handles?(:dialogflow)
       next unless supported_hook_event?(hook, event.name)
 
       HookJob.perform_later(hook, event.name, message: message, previous_changes: event.data[:previous_changes])

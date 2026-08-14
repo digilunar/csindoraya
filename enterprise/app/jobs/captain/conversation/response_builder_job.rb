@@ -10,14 +10,33 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     @inbox = conversation.inbox
     @assistant = assistant
 
-    return unless conversation_pending?
+    return unless BotRoutingService.new(conversation: conversation).handles?(:captain)
+    return unless @inbox.captain_assistant == @assistant
 
-    Current.executed_by = @assistant
+    @incoming_message = latest_incoming_message
+    return unless @incoming_message
 
-    if captain_v2_enabled?
-      generate_response_with_v2
-    else
-      generate_and_process_response
+    @deduplication = BotReplyDeduplicationService.new(
+      conversation_id: conversation.id,
+      incoming_message_id: @incoming_message.id
+    )
+    return if @deduplication.completed?
+
+    return unless @deduplication.with_lock do
+      next if @deduplication.completed?
+      next unless conversation_pending?
+      next unless latest_incoming_message&.id == @incoming_message.id
+
+      Current.executed_by = @assistant
+
+      if captain_v2_enabled?
+        generate_response_with_v2
+      else
+        generate_and_process_response
+      end
+
+      @deduplication.mark_completed
+      true
     end
   rescue ActiveStorage::FileNotFoundError, Faraday::BadRequestError => e
     handle_error(e)
@@ -72,9 +91,10 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
       process_v1_handoff
     elsif conversation_pending?
       ActiveRecord::Base.transaction do
-        create_messages
-        Rails.logger.info("[CAPTAIN][ResponseBuilderJob] Incrementing response usage for #{account.id}")
-        account.increment_response_usage
+        if create_messages
+          Rails.logger.info("[CAPTAIN][ResponseBuilderJob] Incrementing response usage for #{account.id}")
+          account.increment_response_usage
+        end
       end
     end
   end
@@ -170,15 +190,20 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     additional_attrs = {}
     additional_attrs[:agent_name] = agent_name if agent_name.present?
 
-    @conversation.messages.create!(
-      message_type: :outgoing,
-      account_id: account.id,
-      inbox_id: inbox.id,
-      sender: @assistant,
-      content: message_content,
-      additional_attributes: additional_attrs,
-      preserve_waiting_since: preserve_waiting_since
-    )
+    ActiveRecord::Base.transaction(requires_new: true) do
+      @conversation.messages.create!(
+        message_type: :outgoing,
+        account_id: account.id,
+        inbox_id: inbox.id,
+        sender: @assistant,
+        content: message_content,
+        additional_attributes: additional_attrs,
+        bot_response_to_message_id: @incoming_message.id,
+        preserve_waiting_since: preserve_waiting_since
+      )
+    end
+  rescue ActiveRecord::RecordNotUnique
+    nil
   end
 
   def handle_error(error)
@@ -187,6 +212,7 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
     @response['action_source'] ||= 'error'
     @response['action_reason'] ||= error_action_reason(error)
     process_v1_handoff if conversation_pending?
+    @deduplication&.mark_completed unless conversation_pending?
     true
   end
 
@@ -214,5 +240,9 @@ class Captain::Conversation::ResponseBuilderJob < ApplicationJob
   def conversation_pending?
     status = Conversation.uncached { Conversation.where(id: @conversation.id).pick(:status) }
     status == 'pending' || status == Conversation.statuses[:pending]
+  end
+
+  def latest_incoming_message
+    @conversation.messages.where(message_type: :incoming).reorder(created_at: :desc, id: :desc).first
   end
 end

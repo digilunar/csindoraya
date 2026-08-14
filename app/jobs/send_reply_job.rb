@@ -1,5 +1,6 @@
 class SendReplyJob < ApplicationJob
   queue_as :high
+  DELIVERY_LOCK_TIMEOUT = 5.minutes
 
   CHANNEL_SERVICES = {
     'Channel::TwitterProfile' => ::Twitter::SendOnTwitterService,
@@ -16,15 +17,22 @@ class SendReplyJob < ApplicationJob
   }.freeze
 
   def perform(message_id)
-    message = Message.find(message_id)
-    channel_name = message.conversation.inbox.channel.class.to_s
+    message = Message.find_by(id: message_id)
+    return unless message
 
-    return send_on_facebook_page(message) if channel_name == 'Channel::FacebookPage'
+    with_delivery_lock(message.id) do
+      message.reload
+      return if message.source_id.present?
 
-    service_class = CHANNEL_SERVICES[channel_name]
-    return unless service_class
+      channel_name = message.conversation.inbox.channel.class.to_s
 
-    service_class.new(message: message).perform
+      return send_on_facebook_page(message) if channel_name == 'Channel::FacebookPage'
+
+      service_class = CHANNEL_SERVICES[channel_name]
+      return unless service_class
+
+      service_class.new(message: message).perform
+    end
   end
 
   private
@@ -35,5 +43,17 @@ class SendReplyJob < ApplicationJob
     else
       ::Facebook::SendOnFacebookService.new(message: message).perform
     end
+  end
+
+  def with_delivery_lock(message_id)
+    key = format(Redis::RedisKeys::MESSAGE_DELIVERY_MUTEX, message_id: message_id)
+    token = SecureRandom.uuid
+    acquired = false
+    acquired = Redis::Alfred.set(key, token, nx: true, ex: DELIVERY_LOCK_TIMEOUT)
+    return unless acquired
+
+    yield
+  ensure
+    Redis::Alfred.delete_if_equals(key, token) if acquired
   end
 end
