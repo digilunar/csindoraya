@@ -47,6 +47,8 @@ Rails.application.routes.draw do
         member do
           post :update_active_at
           get :cache_keys
+          get :dashboard_reports, controller: 'dashboard_reports'
+          get :chat_export, controller: 'dashboard_reports'
           post :test_ai
         end
 

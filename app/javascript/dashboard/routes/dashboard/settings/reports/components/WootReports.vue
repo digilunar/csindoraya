@@ -51,7 +51,9 @@ export default {
       selectedFilter: this.selectedItem,
       groupBy: GROUP_BY_FILTER[1],
       businessHours: false,
-      isDownloadingCustomDashboard: false,
+      isDownloadingReports: false,
+      isDownloadingDashboard: false,
+      isDownloadingChat: false,
     };
   },
   computed: {
@@ -120,7 +122,7 @@ export default {
         }
       });
     },
-    downloadReports() {
+    async downloadReports() {
       const { from, to, type, businessHours } = this;
       const dispatchMethods = {
         agent: 'downloadAgentReports',
@@ -131,11 +133,16 @@ export default {
       if (dispatchMethods[type]) {
         const fileName = generateFileName({ type, to, businessHours });
         const params = { from, to, fileName, businessHours };
-        this.$store.dispatch(dispatchMethods[type], params);
+        this.isDownloadingReports = true;
+        try {
+          await this.$store.dispatch(dispatchMethods[type], params);
+        } finally {
+          this.isDownloadingReports = false;
+        }
       }
     },
-    downloadCustomDashboard() {
-      this.isDownloadingCustomDashboard = true;
+    downloadDashboard() {
+      this.isDownloadingDashboard = true;
       const fromDate = this.from || (Date.now() / 1000 - 30 * 24 * 60 * 60);
       const toDate = this.to || (Date.now() / 1000);
       const startDate = new Date(fromDate * 1000).toISOString().split('T')[0];
@@ -151,7 +158,30 @@ export default {
           console.error(error);
         })
         .finally(() => {
-          this.isDownloadingCustomDashboard = false;
+          this.isDownloadingDashboard = false;
+        });
+    },
+    downloadChat() {
+      this.isDownloadingChat = true;
+      const fromDate = this.from || (Date.now() / 1000 - 30 * 24 * 60 * 60);
+      const toDate = this.to || Date.now() / 1000;
+      const startDate = new Date(fromDate * 1000).toISOString().split('T')[0];
+      const endDate = new Date(toDate * 1000).toISOString().split('T')[0];
+      const accountId = this.$route.params.accountId;
+
+      window.axios
+        .get(
+          `/api/v1/accounts/${accountId}/chat_export.csv?start_date=${startDate}&end_date=${endDate}`
+        )
+        .then(response => {
+          downloadCsvFile(`chat_export_${startDate}_to_${endDate}.csv`, response.data);
+        })
+        .catch(error => {
+          useAlert(this.$t('REPORT.DATA_FETCHING_FAILED') || 'Download failed');
+          console.error(error);
+        })
+        .finally(() => {
+          this.isDownloadingChat = false;
         });
     },
     onFilterChange(payload) {
@@ -189,15 +219,26 @@ export default {
         :label="downloadButtonLabel"
         icon="i-ph-download-simple"
         size="sm"
+        :is-loading="isDownloadingReports"
+        :disabled="isDownloadingReports"
         @click="downloadReports"
       />
       <V4Button
         label="Download Dashboard CSV"
         icon="i-ph-file-csv"
         size="sm"
+        :is-loading="isDownloadingDashboard"
+        :disabled="isDownloadingDashboard"
+        @click="downloadDashboard"
+      />
+      <V4Button
+        label="Download Chat"
+        icon="i-ph-chat-circle-dots"
+        size="sm"
         color="teal"
-        :is-loading="isDownloadingCustomDashboard"
-        @click="downloadCustomDashboard"
+        :is-loading="isDownloadingChat"
+        :disabled="isDownloadingChat"
+        @click="downloadChat"
       />
     </div>
   </ReportHeader>

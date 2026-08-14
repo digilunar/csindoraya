@@ -4,7 +4,10 @@ import { useAlert, useTrack } from 'dashboard/composables';
 import ReportFilters from './components/ReportFilters.vue';
 import { GROUP_BY_FILTER } from './constants';
 import { REPORTS_EVENTS } from '../../../../helper/AnalyticsHelper/events';
-import { generateFileName } from 'dashboard/helper/downloadHelper';
+import {
+  generateFileName,
+  downloadCsvFile,
+} from 'dashboard/helper/downloadHelper';
 import ReportContainer from './ReportContainer.vue';
 import ReportHeader from './components/ReportHeader.vue';
 
@@ -32,6 +35,9 @@ export default {
       to: 0,
       groupBy: GROUP_BY_FILTER[1],
       businessHours: false,
+      isDownloadingReports: false,
+      isDownloadingDashboard: false,
+      isDownloadingChat: false,
     };
   },
   methods: {
@@ -76,19 +82,59 @@ export default {
         businessHours,
       };
     },
-    downloadConversationReports() {
+    async downloadConversationReports() {
+      this.isDownloadingReports = true;
       const { from, to } = this;
       const fileName = generateFileName({
         type: 'conversation',
         to,
         businessHours: this.businessHours,
       });
-      this.$store.dispatch('downloadConversationsSummaryReports', {
-        from,
-        to,
-        fileName,
-        businessHours: this.businessHours,
-      });
+      try {
+        await this.$store.dispatch('downloadConversationsSummaryReports', {
+          from,
+          to,
+          fileName,
+          businessHours: this.businessHours,
+        });
+      } finally {
+        this.isDownloadingReports = false;
+      }
+    },
+    async downloadDashboard() {
+      this.isDownloadingDashboard = true;
+      const { from, to } = this;
+      const startDate = new Date(from * 1000).toISOString().split('T')[0];
+      const endDate = new Date(to * 1000).toISOString().split('T')[0];
+      const accountId = this.$route.params.accountId;
+
+      try {
+        const response = await window.axios.get(
+          `/api/v1/accounts/${accountId}/dashboard_reports.csv?start_date=${startDate}&end_date=${endDate}`
+        );
+        downloadCsvFile(
+          `dashboard_reports_${startDate}_to_${endDate}.csv`,
+          response.data
+        );
+      } finally {
+        this.isDownloadingDashboard = false;
+      }
+    },
+    async downloadChat() {
+      this.isDownloadingChat = true;
+      const { from, to } = this;
+      const startDate = new Date(from * 1000).toISOString().split('T')[0];
+      const endDate = new Date(to * 1000).toISOString().split('T')[0];
+      const accountId = this.$route.params.accountId;
+
+      try {
+        const response = await window.axios.get(
+          `/api/v1/accounts/${accountId}/chat_export.csv?start_date=${startDate}&end_date=${endDate}`
+        );
+        downloadCsvFile(`chat_export_${startDate}_to_${endDate}.csv`, response.data);
+      } finally {
+        this.isDownloadingChat = false;
+      }
     },
     onFilterChange({ from, to, groupBy, businessHours }) {
       this.from = from;
@@ -112,7 +158,26 @@ export default {
       :label="$t('REPORT.DOWNLOAD_CONVERSATION_REPORTS')"
       icon="i-ph-download-simple"
       size="sm"
+      :is-loading="isDownloadingReports"
+      :disabled="isDownloadingReports"
       @click="downloadConversationReports"
+    />
+    <V4Button
+      label="Download Dashboard CSV"
+      icon="i-ph-file-csv"
+      size="sm"
+      :is-loading="isDownloadingDashboard"
+      :disabled="isDownloadingDashboard"
+      @click="downloadDashboard"
+    />
+    <V4Button
+      label="Download Chat"
+      icon="i-ph-chat-circle-dots"
+      size="sm"
+      color="teal"
+      :is-loading="isDownloadingChat"
+      :disabled="isDownloadingChat"
+      @click="downloadChat"
     />
   </ReportHeader>
   <div class="flex flex-col">
